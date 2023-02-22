@@ -32,7 +32,7 @@ def main(args):
     # Model
     tokenizer = AutoTokenizer.from_pretrained("facebook/opt-30b", padding_side="left")
     tokenizer.add_bos_token = False
-    stop = tokenizer("\n").input_ids[0]
+    stop = tokenizer("###").input_ids[0]
 
     print("Initialize...")
     opt_config = get_opt_config(args.model)
@@ -40,11 +40,13 @@ def main(args):
     model.init_all_weights()
 
     context = (
-        "A chat between a curious human and a knowledgeable artificial intelligence assistant.\n"
+        "A chat between a curious human and a knowledgeable artificial intelligence assistant. The assistant attempts to answer all of the human's questions in a fun witty way. The AI assistant will end all answers with ###\n"
         "Human: Hello! What can you do?\n"
-        "Assistant: As an AI assistant, I can answer questions and chat with you.\n"
+        "Assistant: As an AI assistant,\n I can answer questions and chat with you.###\n"
         "Human: What is the name of the tallest mountain in the world?\n"
-        "Assistant: Everest.\n"
+        "Assistant: The tallest mountain \n in the world is Everest.###\n"
+        "Human: Tell me how to make a cake?\n"
+        "Assistant: Take some sugar\n take some water\n take some flour\n mix mix mix\n cake!.###\n"
     )
 
     # Chat
@@ -61,16 +63,17 @@ def main(args):
             inputs.input_ids,
             do_sample=True,
             temperature=0.7,
-            max_new_tokens=96,
-            stop=stop)
+            max_new_tokens=50,
+            stop=stop
+            )
         outputs = tokenizer.batch_decode(output_ids, skip_special_tokens=True)[0]
         try:
-            index = outputs.index("\n", len(context))
+            index = outputs.index("###", len(context))
         except ValueError:
-            outputs += "\n"
-            index = outputs.index("\n", len(context))
+            outputs += "###"
+            index = outputs.index("###", len(context))
         
-        outputs = outputs[:index + 1]
+        outputs = outputs[:index + 3] + "\n"
         print(outputs[len(context):], end="")
         context = outputs
 
